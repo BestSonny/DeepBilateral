@@ -153,156 +153,156 @@ class TestCase(unittest.TestCase):
         # assertRaisesRegexp renamed assertRaisesRegex in 3.2
         assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
-# class BilateralSliceTest(TestCase):
-#
-#     def setUp(self):
-#         self.net = BilateralSlice().cuda()
-#
-#     def run_bilateral_slice(self, grid_data, guide_data):
-#         self.net.zero_grad()
-#         return self.net(grid_data, guide_data)
-#
-#     def test_shape_is_correct(self):
-#         N = random.randint(1, 8)
-#         H = random.randint(1, 8)
-#         W = random.randint(1, 8)
-#         C = random.randint(1, 8)
-#         D = random.randint(1, 8)
-#         GH = random.randint(1, 20)
-#         GW = random.randint(1, 20)
-#         grid_shape = torch.Size([N, H, W, D, C])
-#         guide_shape = torch.Size([N, GH, GW])
-#         grid_data = Variable(torch.randn(*grid_shape), requires_grad=True).cuda()
-#         guide_data = Variable(torch.randn(*guide_shape), requires_grad=True).cuda()
-#
-#         output_data = self.run_bilateral_slice(grid_data, guide_data)
-#         self.assertTrue(output_data.size() == torch.Size([N, GH, GW, C]))
-#
-#     def test_interpolate(self):
-#         batch_size = 3
-#         h = 3
-#         w = 4
-#         d = 3
-#         grid_shape = [batch_size, h, w, d, 1]
-#         grid_data = np.zeros(grid_shape).astype(np.float32)
-#         grid_data[:, :, :, 1 :] = 1.0
-#         grid_data[:, :, :, 2 :] = 2.0
-#         grid_data_variable = Variable(torch.from_numpy(grid_data), requires_grad=True).cuda()
-#
-#         guide_shape = [batch_size, 10, 9]
-#         target_shape = [batch_size, 10, 9, 1]
-#
-#         for val in range(d):
-#             target_data = val*np.ones(target_shape)
-#             target_data = target_data.astype(np.float32)
-#             target_data_variable = Variable(torch.from_numpy(target_data), requires_grad=True).cuda()
-#
-#             guide_data = (val/(1.0*d))*np.ones(guide_shape).astype(np.float32)
-#             guide_data_variable = Variable(torch.from_numpy(guide_data), requires_grad=True).cuda()
-#
-#             output_data = BilateralSlice()(grid_data_variable, guide_data_variable)
-#
-#             diff = torch.max((target_data_variable-output_data).abs()).cpu().data.numpy()[0]
-#             self.assertLess(diff, 5e-4)
-#
-#     def test_grid_gradient(self):
-#         batch_size = 3
-#         h = 8
-#         w = 5
-#         gh = 6
-#         gw = 3
-#         d = 7
-#         nchans = 4
-#         grid_shape = [batch_size, gh, gw, d, nchans]
-#         guide_shape = [batch_size, h, w]
-#         output_shape = [batch_size, h, w, nchans]
-#         grid_data_variable = Variable(torch.rand(batch_size, gh, gw, d, nchans).cuda(), requires_grad=True)
-#         guide_data_variable = Variable(torch.rand(batch_size, h, w).cuda(), requires_grad=True)
-#
-#         def _as_tuple(x):
-#             if isinstance(x, tuple):
-#                 return x
-#             elif isinstance(x, list):
-#                 return tuple(x)
-#             else:
-#                 return x
-#
-#         inputs = (grid_data_variable, guide_data_variable)
-#         func = BilateralSlice().cuda()
-#         output = func(*inputs)
-#         output = _as_tuple(output)
-#
-#         for i, o in enumerate(output):
-#             if not o.requires_grad:
-#                 continue
-#
-#             def fn(input):
-#                 return _as_tuple(func(*input))[i].data
-#
-#             analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
-#             numerical = get_numerical_jacobian(fn, inputs, inputs)
-#
-#             grid_numerical, guide_numerical = numerical
-#             grid_analytical, guide_analytical = analytical
-#             # print grid_numerical, guide_numerical, grid_analytical, guide_analytical
-#             for a, n in zip(grid_analytical, grid_numerical):
-#                 self.assertLess((a - n).abs().max(), 1e-4)
-#
-#     def test_guide_gradient(self):
-#         batch_size = 2
-#         h = 7
-#         w = 8
-#         d = 5
-#         gh = 3
-#         gw = 4
-#         nchans = 2
-#         grid_shape = [batch_size, gh, gw, d, nchans]
-#         guide_shape = [batch_size, h, w]
-#         output_shape = [batch_size, h, w, nchans]
-#         grid_data_variable = Variable(torch.rand(batch_size, gh, gw, d, nchans).cuda(), requires_grad=True)
-#         guide_data_variable = Variable(torch.rand(batch_size, h, w).cuda(), requires_grad=True)
-#
-#         def _as_tuple(x):
-#             if isinstance(x, tuple):
-#                 return x
-#             elif isinstance(x, list):
-#                 return tuple(x)
-#             else:
-#                 return x
-#
-#         inputs = (grid_data_variable, guide_data_variable)
-#         func = BilateralSlice().cuda()
-#         output = func(*inputs)
-#         output = _as_tuple(output)
-#
-#         for i, o in enumerate(output):
-#             if not o.requires_grad:
-#                 continue
-#
-#             def fn(input):
-#                 return _as_tuple(func(*input))[i].data
-#
-#             analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
-#             numerical = get_numerical_jacobian(fn, inputs, inputs, eps=1e-4)
-#
-#             grid_numerical, guide_numerical = numerical
-#             grid_analytical, guide_analytical = analytical
-#             # print grid_numerical, guide_numerical, grid_analytical, guide_analytical
-#             thresh = 5e-3
-#             diff = (guide_analytical - guide_numerical).abs().numpy()
-#             x, y = np.where(diff>thresh)
-#             for i in range(len(x)):
-#               in_x = x[i] % w
-#               in_y = x[i] / w
-#               out_c = y[i] % nchans
-#               out_x = (y[i]/nchans) % w
-#               out_y = (y[i]/nchans) / w
-#               print "output ({},{},{}) - input ({},{})\n  guide: {:f}\n  theoretical: {:f}\n  numerical: {:f}".format(
-#                   out_y, out_x, out_c, in_y, in_x, np.ravel(guide_data_variable.data.cpu().numpy())[x[i]], guide_analytical[x[i], y[i]], guide_numerical[x[i],y[i]])
-#
-#             print len(x), 'of', len(np.ravel(diff)), 'errors'
-#
-#             self.assertLess(np.amax(diff), thresh)
+class BilateralSliceTest(TestCase):
+
+    def setUp(self):
+        self.net = BilateralSlice().cuda()
+
+    def run_bilateral_slice(self, grid_data, guide_data):
+        self.net.zero_grad()
+        return self.net(grid_data, guide_data)
+
+    def test_shape_is_correct(self):
+        N = random.randint(1, 8)
+        H = random.randint(1, 8)
+        W = random.randint(1, 8)
+        C = random.randint(1, 8)
+        D = random.randint(1, 8)
+        GH = random.randint(1, 20)
+        GW = random.randint(1, 20)
+        grid_shape = torch.Size([N, H, W, D, C])
+        guide_shape = torch.Size([N, GH, GW])
+        grid_data = Variable(torch.randn(*grid_shape), requires_grad=True).cuda()
+        guide_data = Variable(torch.randn(*guide_shape), requires_grad=True).cuda()
+
+        output_data = self.run_bilateral_slice(grid_data, guide_data)
+        self.assertTrue(output_data.size() == torch.Size([N, GH, GW, C]))
+
+    def test_interpolate(self):
+        batch_size = 3
+        h = 3
+        w = 4
+        d = 3
+        grid_shape = [batch_size, h, w, d, 1]
+        grid_data = np.zeros(grid_shape).astype(np.float32)
+        grid_data[:, :, :, 1 :] = 1.0
+        grid_data[:, :, :, 2 :] = 2.0
+        grid_data_variable = Variable(torch.from_numpy(grid_data), requires_grad=True).cuda()
+
+        guide_shape = [batch_size, 10, 9]
+        target_shape = [batch_size, 10, 9, 1]
+
+        for val in range(d):
+            target_data = val*np.ones(target_shape)
+            target_data = target_data.astype(np.float32)
+            target_data_variable = Variable(torch.from_numpy(target_data), requires_grad=True).cuda()
+
+            guide_data = (val/(1.0*d))*np.ones(guide_shape).astype(np.float32)
+            guide_data_variable = Variable(torch.from_numpy(guide_data), requires_grad=True).cuda()
+
+            output_data = BilateralSlice()(grid_data_variable, guide_data_variable)
+
+            diff = torch.max((target_data_variable-output_data).abs()).cpu().data.numpy()[0]
+            self.assertLess(diff, 5e-4)
+
+    def test_grid_gradient(self):
+        batch_size = 3
+        h = 8
+        w = 5
+        gh = 6
+        gw = 3
+        d = 7
+        nchans = 4
+        grid_shape = [batch_size, gh, gw, d, nchans]
+        guide_shape = [batch_size, h, w]
+        output_shape = [batch_size, h, w, nchans]
+        grid_data_variable = Variable(torch.rand(batch_size, gh, gw, d, nchans).cuda(), requires_grad=True)
+        guide_data_variable = Variable(torch.rand(batch_size, h, w).cuda(), requires_grad=True)
+
+        def _as_tuple(x):
+            if isinstance(x, tuple):
+                return x
+            elif isinstance(x, list):
+                return tuple(x)
+            else:
+                return x
+
+        inputs = (grid_data_variable, guide_data_variable)
+        func = BilateralSlice().cuda()
+        output = func(*inputs)
+        output = _as_tuple(output)
+
+        for i, o in enumerate(output):
+            if not o.requires_grad:
+                continue
+
+            def fn(input):
+                return _as_tuple(func(*input))[i].data
+
+            analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
+            numerical = get_numerical_jacobian(fn, inputs, inputs)
+
+            grid_numerical, guide_numerical = numerical
+            grid_analytical, guide_analytical = analytical
+            # print grid_numerical, guide_numerical, grid_analytical, guide_analytical
+            for a, n in zip(grid_analytical, grid_numerical):
+                self.assertLess((a - n).abs().max(), 1e-4)
+
+    def test_guide_gradient(self):
+        batch_size = 2
+        h = 7
+        w = 8
+        d = 5
+        gh = 3
+        gw = 4
+        nchans = 2
+        grid_shape = [batch_size, gh, gw, d, nchans]
+        guide_shape = [batch_size, h, w]
+        output_shape = [batch_size, h, w, nchans]
+        grid_data_variable = Variable(torch.rand(batch_size, gh, gw, d, nchans).cuda(), requires_grad=True)
+        guide_data_variable = Variable(torch.rand(batch_size, h, w).cuda(), requires_grad=True)
+
+        def _as_tuple(x):
+            if isinstance(x, tuple):
+                return x
+            elif isinstance(x, list):
+                return tuple(x)
+            else:
+                return x
+
+        inputs = (grid_data_variable, guide_data_variable)
+        func = BilateralSlice().cuda()
+        output = func(*inputs)
+        output = _as_tuple(output)
+
+        for i, o in enumerate(output):
+            if not o.requires_grad:
+                continue
+
+            def fn(input):
+                return _as_tuple(func(*input))[i].data
+
+            analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
+            numerical = get_numerical_jacobian(fn, inputs, inputs, eps=1e-4)
+
+            grid_numerical, guide_numerical = numerical
+            grid_analytical, guide_analytical = analytical
+            # print grid_numerical, guide_numerical, grid_analytical, guide_analytical
+            thresh = 5e-3
+            diff = (guide_analytical - guide_numerical).abs().numpy()
+            x, y = np.where(diff>thresh)
+            for i in range(len(x)):
+              in_x = x[i] % w
+              in_y = x[i] / w
+              out_c = y[i] % nchans
+              out_x = (y[i]/nchans) % w
+              out_y = (y[i]/nchans) / w
+              print "output ({},{},{}) - input ({},{})\n  guide: {:f}\n  theoretical: {:f}\n  numerical: {:f}".format(
+                  out_y, out_x, out_c, in_y, in_x, np.ravel(guide_data_variable.data.cpu().numpy())[x[i]], guide_analytical[x[i], y[i]], guide_numerical[x[i],y[i]])
+
+            print len(x), 'of', len(np.ravel(diff)), 'errors'
+
+            self.assertLess(np.amax(diff), thresh)
 
 
 
@@ -348,104 +348,151 @@ class BilateralSliceApplyTest(TestCase):
     def test_interpolate(self):
         pass
 
-    # def test_grid_gradient(self):
-    #     batch_size = 3
-    #     h = 8
-    #     w = 5
-    #     gh = 6
-    #     gw = 3
-    #     d = 7
-    #     nchans = 4
-    #     grid_shape = [batch_size, gh, gw, d, nchans]
-    #     guide_shape = [batch_size, h, w]
-    #     output_shape = [batch_size, h, w, nchans]
-    #     grid_data_variable = Variable(torch.rand(batch_size, gh, gw, d, nchans).cuda(), requires_grad=True)
-    #     guide_data_variable = Variable(torch.rand(batch_size, h, w).cuda(), requires_grad=True)
-    #
-    #     def _as_tuple(x):
-    #         if isinstance(x, tuple):
-    #             return x
-    #         elif isinstance(x, list):
-    #             return tuple(x)
-    #         else:
-    #             return x
-    #
-    #     inputs = (grid_data_variable, guide_data_variable)
-    #     func = BilateralSlice().cuda()
-    #     output = func(*inputs)
-    #     output = _as_tuple(output)
-    #
-    #     for i, o in enumerate(output):
-    #         if not o.requires_grad:
-    #             continue
-    #
-    #         def fn(input):
-    #             return _as_tuple(func(*input))[i].data
-    #
-    #         analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
-    #         numerical = get_numerical_jacobian(fn, inputs, inputs)
-    #
-    #         grid_numerical, guide_numerical = numerical
-    #         grid_analytical, guide_analytical = analytical
-    #         # print grid_numerical, guide_numerical, grid_analytical, guide_analytical
-    #         for a, n in zip(grid_analytical, grid_numerical):
-    #             self.assertLess((a - n).abs().max(), 1e-4)
-    #
-    # def test_guide_gradient(self):
-    #     batch_size = 2
-    #     h = 7
-    #     w = 8
-    #     d = 5
-    #     gh = 3
-    #     gw = 4
-    #     nchans = 2
-    #     grid_shape = [batch_size, gh, gw, d, nchans]
-    #     guide_shape = [batch_size, h, w]
-    #     output_shape = [batch_size, h, w, nchans]
-    #     grid_data_variable = Variable(torch.rand(batch_size, gh, gw, d, nchans).cuda(), requires_grad=True)
-    #     guide_data_variable = Variable(torch.rand(batch_size, h, w).cuda(), requires_grad=True)
-    #
-    #     def _as_tuple(x):
-    #         if isinstance(x, tuple):
-    #             return x
-    #         elif isinstance(x, list):
-    #             return tuple(x)
-    #         else:
-    #             return x
-    #
-    #     inputs = (grid_data_variable, guide_data_variable)
-    #     func = BilateralSlice().cuda()
-    #     output = func(*inputs)
-    #     output = _as_tuple(output)
-    #
-    #     for i, o in enumerate(output):
-    #         if not o.requires_grad:
-    #             continue
-    #
-    #         def fn(input):
-    #             return _as_tuple(func(*input))[i].data
-    #
-    #         analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
-    #         numerical = get_numerical_jacobian(fn, inputs, inputs, eps=1e-4)
-    #
-    #         grid_numerical, guide_numerical = numerical
-    #         grid_analytical, guide_analytical = analytical
-    #         # print grid_numerical, guide_numerical, grid_analytical, guide_analytical
-    #         thresh = 5e-3
-    #         diff = (guide_analytical - guide_numerical).abs().numpy()
-    #         x, y = np.where(diff>thresh)
-    #         for i in range(len(x)):
-    #           in_x = x[i] % w
-    #           in_y = x[i] / w
-    #           out_c = y[i] % nchans
-    #           out_x = (y[i]/nchans) % w
-    #           out_y = (y[i]/nchans) / w
-    #           print "output ({},{},{}) - input ({},{})\n  guide: {:f}\n  theoretical: {:f}\n  numerical: {:f}".format(
-    #               out_y, out_x, out_c, in_y, in_x, np.ravel(guide_data_variable.data.cpu().numpy())[x[i]], guide_analytical[x[i], y[i]], guide_numerical[x[i],y[i]])
-    #
-    #         print len(x), 'of', len(np.ravel(diff)), 'errors'
-    #
-    #         self.assertLess(np.amax(diff), thresh)
+    def test_grid_gradient(self):
+        batch_size = 3
+        h = 8
+        w = 5
+        gh = 6
+        gw = 3
+        d = 7
+        i_chans = 3
+        o_chans = 3
+        grid_shape = torch.Size([batch_size, gh, gw, d, (1+i_chans)*o_chans])
+        guide_shape = torch.Size([batch_size, h, w])
+        input_shape = torch.Size([batch_size, h, w, i_chans])
+        output_shape = [batch_size, h, w, o_chans]
+
+        grid_data_variable = Variable(torch.rand(*grid_shape).cuda(), requires_grad=True)
+        guide_data_variable = Variable(torch.rand(*guide_shape).cuda(), requires_grad=True)
+        input_data_variable = Variable(torch.rand(*input_shape).cuda(), requires_grad=True)
+
+        def _as_tuple(x):
+            if isinstance(x, tuple):
+                return x
+            elif isinstance(x, list):
+                return tuple(x)
+            else:
+                return x
+
+        inputs = (grid_data_variable, guide_data_variable, input_data_variable)
+        func = BilateralSliceApply(True).cuda()
+        output = func(*inputs)
+        output = _as_tuple(output)
+
+        for i, o in enumerate(output):
+            if not o.requires_grad:
+                continue
+
+            def fn(input):
+                return _as_tuple(func(*input))[i].data
+
+            analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
+            numerical = get_numerical_jacobian(fn, inputs, inputs)
+
+            grid_numerical, guide_numerical, input_numerical = numerical
+            grid_analytical, guide_analytical, input_analytical = analytical
+            # print grid_numerical, guide_numerical, grid_analytical, guide_analytical
+            for a, n in zip(grid_analytical, grid_numerical):
+                self.assertLess((a - n).abs().max(), 3e-4)
+
+    def test_guide_gradient(self):
+        batch_size = 1
+        h = 6
+        w = 15
+        gh = 3
+        gw = 9
+        d = 7
+        i_chans = 1
+        o_chans = 1
+        grid_shape = torch.Size([batch_size, gh, gw, d, (i_chans+1)*o_chans])
+        guide_shape = torch.Size([batch_size, h, w])
+        input_shape = torch.Size([batch_size, h, w, i_chans])
+        output_shape = torch.Size([batch_size, h, w, o_chans])
+
+        grid_data_variable = Variable(torch.rand(*grid_shape).cuda(), requires_grad=True)
+        guide_data_variable = Variable(torch.rand(*guide_shape).cuda(), requires_grad=True)
+        input_data_variable = Variable(torch.rand(*input_shape).cuda(), requires_grad=True)
+
+        def _as_tuple(x):
+            if isinstance(x, tuple):
+                return x
+            elif isinstance(x, list):
+                return tuple(x)
+            else:
+                return x
+
+        inputs = (grid_data_variable, guide_data_variable, input_data_variable)
+        func = BilateralSliceApply(True).cuda()
+        output = func(*inputs)
+        output = _as_tuple(output)
+
+        for i, o in enumerate(output):
+            if not o.requires_grad:
+                continue
+
+            def fn(input):
+                return _as_tuple(func(*input))[i].data
+
+            analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
+            numerical = get_numerical_jacobian(fn, inputs, inputs, eps=1e-4)
+
+            grid_numerical, guide_numerical, input_numerical = numerical
+            grid_analytical, guide_analytical, input_analytical = analytical
+
+            thresh = 5e-3
+            diff = (guide_analytical - guide_numerical).abs().numpy()
+            x, y = np.where(diff>thresh)
+
+            self.assertLess(np.amax(diff), thresh)
+
+    def test_input_gradient(self):
+        batch_size = 1
+        h = 8
+        w = 5
+        gh = 6
+        gw = 3
+        d = 7
+        i_chans = 3
+        o_chans = 3
+
+        grid_shape = torch.Size([batch_size, gh, gw, d, (i_chans+1)*o_chans])
+        guide_shape = torch.Size([batch_size, h, w])
+        input_shape = torch.Size([batch_size, h, w, i_chans])
+        output_shape = torch.Size([batch_size, h, w, o_chans])
+
+        grid_data_variable = Variable(torch.rand(*grid_shape).cuda(), requires_grad=True)
+        guide_data_variable = Variable(torch.rand(*guide_shape).cuda(), requires_grad=True)
+        input_data_variable = Variable(torch.rand(*input_shape).cuda(), requires_grad=True)
+
+        def _as_tuple(x):
+            if isinstance(x, tuple):
+                return x
+            elif isinstance(x, list):
+                return tuple(x)
+            else:
+                return x
+
+        inputs = (grid_data_variable, guide_data_variable, input_data_variable)
+        func = BilateralSliceApply(True).cuda()
+        output = func(*inputs)
+        output = _as_tuple(output)
+
+        for i, o in enumerate(output):
+            if not o.requires_grad:
+                continue
+
+            def fn(input):
+                return _as_tuple(func(*input))[i].data
+
+            analytical, reentrant, correct_grad_sizes = get_analytical_jacobian(_as_tuple(inputs), o)
+            numerical = get_numerical_jacobian(fn, inputs, inputs)
+
+            grid_numerical, guide_numerical, input_numerical = numerical
+            grid_analytical, guide_analytical, input_analytical = analytical
+
+            for a, n in zip(input_analytical, input_numerical):
+                self.assertLess((a - n).abs().max(), 3e-4)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -30,11 +30,21 @@ __global__ void BilateralSliceApplyForwardKernel(const int nthreads, const int b
 
 void BilateralSliceApplyForwardLauncher(THCState* state, THCudaTensor* grid, THCudaTensor* guide, THCudaTensor* input, THCudaTensor* output, THCudaTensor* has_offset);
 
-// __global__ void BilateralSliceApplyBackwardKernel(const int nthreads, const int batch_size, const int height, const int width,
-//                                   const int depth, const int nchannels, const int guide_height, const int guide_width,
-//                                   const float* grid, const float* guide, const float* grad_output,
-//                                   float* grad_grid, float* grad_guide);
 
+__global__ void BilateralSliceApplyBackwardGridKernel(const int nthreads, const int batch_size, const int height, const int width, const int depth,
+                                   const int input_chans, const int output_chans, const int guide_height, const int guide_width, const int has_offset,
+                                  const float* grid, const float* guide, const float* input, const float* grad_output,
+                                  float* grad_grid);
+
+__global__ void BilateralSliceApplyBackwardGuideKernel(const int nthreads, const int batch_size, const int height, const int width, const int depth,
+                                   const int input_chans, const int output_chans, const int guide_height, const int guide_width, const int has_offset,
+                                  const float* grid, const float* guide, const float* input, const float* grad_output,
+                                  float* grad_guide);
+
+__global__ void BilateralSliceApplyBackwardInputKernel(const int nthreads, const int batch_size, const int height, const int width, const int depth,
+                                   const int input_chans, const int output_chans, const int guide_height, const int guide_width, const int has_offset,
+                                   const float* grid, const float* guide, const float* input, const float* grad_output,
+                                   float* grad_input);
 
 void BilateralSliceApplyBackwardLauncher(THCState* state, THCudaTensor* grid, THCudaTensor* guide, THCudaTensor* input, THCudaTensor* grad_output,
                                          THCudaTensor* has_offset, THCudaTensor* grad_grid, THCudaTensor* grad_guide, THCudaTensor* grad_input);
