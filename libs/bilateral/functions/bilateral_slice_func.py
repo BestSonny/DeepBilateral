@@ -1,6 +1,6 @@
 import torch
 from torch.autograd import Function
-from _ext import bilateral
+from bilateral._ext import bilateral
 from torch.autograd import Variable
 
 class BilateralSliceFunc(Function):

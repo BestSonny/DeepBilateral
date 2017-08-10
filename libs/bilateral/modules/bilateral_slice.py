@@ -1,6 +1,6 @@
 import torch
 from torch.nn.modules.module import Module
-from functions.bilateral_slice_func import BilateralSliceFunc, BilateralSliceApplyFunc
+from bilateral.functions.bilateral_slice_func import BilateralSliceFunc, BilateralSliceApplyFunc
 from torch.autograd import Variable, Function
 
 class BilateralSlice(Module):
