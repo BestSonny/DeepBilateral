@@ -8,6 +8,7 @@ class BilateralSlice(Module):
         super(BilateralSlice, self).__init__()
 
     def forward(self, grid, guide):
+
         return BilateralSliceFunc()(grid, guide)
 
 
@@ -17,6 +18,7 @@ class BilateralSliceApply(Module):
         self.has_offset = has_offset
 
     def forward(self, grid, guide, input):
+    
         if self.has_offset:
             return BilateralSliceApplyFunc()(grid, guide, input, Variable(input.data.new(1)))
         else:

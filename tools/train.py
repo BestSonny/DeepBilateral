@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
   # Data pipeline and data augmentation
   data_grp = parser.add_argument_group('data pipeline')
-  data_grp.add_argument('--batch_size', default=16, type=int, help='size of a batch for each gradient update.')
+  data_grp.add_argument('--batch_size', default=32, type=int, help='size of a batch for each gradient update.')
   data_grp.add_argument('--shuffle', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')
   data_grp.add_argument('--data_threads', default=2, help='number of threads to load and enqueue samples.')
   data_grp.add_argument('--rotate', dest="rotate", action="store_true", help='rotate data augmentation.')

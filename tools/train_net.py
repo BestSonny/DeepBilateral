@@ -17,7 +17,7 @@ import time
 from utils import AverageMeter, label_accuracy_score
 
 def save_checkpoint(state, is_best, filename):
-    torch.save(state, filename)
+    torch.save(state, filename+'.pth')
     if is_best:
         print 'save best model'
         shutil.copyfile(filename+'.pth', filename+'_best.pth')
@@ -37,7 +37,7 @@ class Trainer(object):
         self.max_iter = max_iter
         self.losses = AverageMeter()
 
-        self.best_prec1 = 0
+        self.best_loss = 0
         self.args = args
         self.learning_rate = args.learning_rate
 
@@ -54,7 +54,7 @@ class Trainer(object):
         for batch_idx, (data, target) in tqdm.tqdm(
                 enumerate(self.val_dataset), total=len(self.val_dataset),
                 desc='Testing on epoch %d' % self.epoch, ncols=80, leave=False):
-            target = target.long().squeeze()
+            # target = target.long().squeeze()
             if self.cuda:
                 data, target = data.cuda(), target.cuda(async=True)
 
@@ -72,24 +72,24 @@ class Trainer(object):
             batch_time.update(time.time() - end)
             end = time.time()
 
-            imgs = data.cpu()
-            pred = output.data.max(1)[1].cpu().numpy()
-            true = target.cpu().numpy()
-            for img, lt, lp in zip(imgs, true, pred):
-                label_trues.append(lt)
-                label_preds.append(lp)
+            # imgs = data.cpu()
+            # pred = output.data.max(1)[1].cpu().numpy()
+            # true = target.cpu().numpy()
+            # for img, lt, lp in zip(imgs, true, pred):
+            #     label_trues.append(lt)
+            #     label_preds.append(lp)
 
             if batch_idx % self.args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Softmax Loss {softmax_loss.val:.4f} ({softmax_loss.avg:.4f})\t'.format(
                     batch_idx, len(self.val_dataset), batch_time=batch_time, softmax_loss=losses))
-        metrics = label_accuracy_score(
-        label_trues, label_preds, n_class=2)
-        metrics = np.array(metrics)
-        metrics *= 100
+        # metrics = label_accuracy_score(
+        # label_trues, label_preds, n_class=2)
+        # metrics = np.array(metrics)
+        # metrics *= 100
 
-        return losses.avg, metrics
+        return losses.avg
 
     def train(self):
         batch_time = AverageMeter()
@@ -100,7 +100,7 @@ class Trainer(object):
         for batch_idx, (data, target) in tqdm.tqdm(
                 enumerate(self.train_dataset), total=len(self.train_dataset),
                 desc='Train epoch=%d' % self.epoch, ncols=80, leave=False):
-            target = target.long().squeeze()
+            # target = target.long().squeeze()
             if self.cuda:
                 data, target = data.cuda(), target.cuda()
             data_var, target_var = Variable(data), Variable(target)
@@ -138,20 +138,20 @@ class Trainer(object):
         for epoch in itertools.count(self.epoch):
             self.epoch = epoch
 
-            if self.val_dataset:
-                val_loss, metrics= self.validate()
-                self.scheduler.step(val_loss)
-            if self.iteration >= self.max_iter:
-                break
-
-            acc, acc_cls, mean_iu, fwavacc = metrics
-            is_best = mean_iu > self.best_prec1
-            self.best_prec1 = max(mean_iu, self.best_prec1)
-            save_checkpoint({
-                'epoch': self.epoch,
-                'state_dict': self.model.state_dict(),
-                'best_prec1': self.best_prec1,
-            }, is_best, self.args.checkpoint_dir + '/' + self.args.model_name)
+            # if self.val_dataset:
+            #     val_loss = self.validate()
+            #     self.scheduler.step(val_loss)
+            # if self.iteration >= self.max_iter:
+            #     break
+            #
+            # # acc, acc_cls, mean_iu, fwavacc = metrics
+            # is_best = val_loss < self.best_loss
+            # self.best_loss = min(val_loss, self.best_loss)
+            # save_checkpoint({
+            #     'epoch': self.epoch,
+            #     'state_dict': self.model.state_dict(),
+            #     'best_loss': self.best_loss,
+            # }, is_best, self.args.checkpoint_dir + '/' + self.args.model_name)
 
             self.train()
 
@@ -176,7 +176,7 @@ def train_net(model, train_dataset, val_dataset, args):
         val_dataset=val_dataset,
         max_iter=args.max_iter,
         args= args,
-        criterion= nn.NLLLoss2d()
+        criterion= nn.MSELoss()
     )
 
     if cuda:

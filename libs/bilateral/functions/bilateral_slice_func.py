@@ -65,7 +65,8 @@ class BilateralSliceApplyFunc(Function):
 
     def backward(self, grad_output):
 
-        assert(grad_output.is_contiguous() == True)
+        grad_output = grad_output.contiguous()
+        # assert(grad_output.is_contiguous() == True)
 
         grid, guide, input, has_offset = self.saved_tensors
 

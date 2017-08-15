@@ -57,7 +57,7 @@ class ImageFolderDataSet(BaseDataset):
 
         normalize = transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))
         image_scale = transforms.Scale(size=[self.args.model_params['output_resolution'][1], self.args.model_params['output_resolution'][0]], interpolation=Image.BILINEAR)
-        target_scale = transforms.Scale(size=[self.args.model_params['output_resolution'][1], self.args.model_params['output_resolution'][0]], interpolation=Image.NEAREST)
+        target_scale = transforms.Scale(size=[self.args.model_params['output_resolution'][1], self.args.model_params['output_resolution'][0]], interpolation=Image.BILINEAR)
         binary_transform = transforms.Lambda(lambda x: x.gt(0.5))
         transform = transforms.Compose([
             image_scale,
@@ -66,18 +66,18 @@ class ImageFolderDataSet(BaseDataset):
         target_transform = transforms.Compose([
             target_scale,
             transforms.ToTensor(),
-            binary_transform,
+            # binary_transform,
             ])
         if self.args.is_train == False:
             transform = transforms.Compose([
                 image_scale,
                 transforms.ToTensor(),
-                normalize,
+                # normalize,
                 ])
             target_transform = transforms.Compose([
                 target_scale,
                 transforms.ToTensor(),
-                binary_transform,
+                # binary_transform,
                 ])
 
         self.imgs = imgs
@@ -95,8 +95,8 @@ class ImageFolderDataSet(BaseDataset):
         img_file = self.imgs[index]
         img = self.loader(img_file)
 
-        label_file = img_file.replace('.jpg','.mask.png')
-        label = Image.open(label_file).convert('P')
+        # label_file = img_file.replace('.jpg','.mask.png')
+        label = Image.open(img_file)
         seed = np.random.randint(2147483647) # make a seed with numpy generator
         random.seed(seed) # apply this seed to img tranfsorms
         if self.transform is not None:
