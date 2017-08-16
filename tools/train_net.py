@@ -37,7 +37,7 @@ class Trainer(object):
         self.max_iter = max_iter
         self.losses = AverageMeter()
 
-        self.best_loss = 0
+        self.best_loss = float("inf")
         self.args = args
         self.learning_rate = args.learning_rate
 
@@ -138,20 +138,20 @@ class Trainer(object):
         for epoch in itertools.count(self.epoch):
             self.epoch = epoch
 
-            # if self.val_dataset:
-            #     val_loss = self.validate()
-            #     self.scheduler.step(val_loss)
-            # if self.iteration >= self.max_iter:
-            #     break
-            #
-            # # acc, acc_cls, mean_iu, fwavacc = metrics
-            # is_best = val_loss < self.best_loss
-            # self.best_loss = min(val_loss, self.best_loss)
-            # save_checkpoint({
-            #     'epoch': self.epoch,
-            #     'state_dict': self.model.state_dict(),
-            #     'best_loss': self.best_loss,
-            # }, is_best, self.args.checkpoint_dir + '/' + self.args.model_name)
+            if self.val_dataset:
+                val_loss = self.validate()
+                self.scheduler.step(val_loss)
+            if self.iteration >= self.max_iter:
+                break
+
+            # acc, acc_cls, mean_iu, fwavacc = metrics
+            is_best = val_loss < self.best_loss
+            self.best_loss = min(val_loss, self.best_loss)
+            save_checkpoint({
+                'epoch': self.epoch,
+                'state_dict': self.model.state_dict(),
+                'best_loss': self.best_loss,
+            }, is_best, self.args.checkpoint_dir + '/' + self.args.model_name)
 
             self.train()
 

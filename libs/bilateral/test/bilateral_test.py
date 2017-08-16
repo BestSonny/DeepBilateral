@@ -335,8 +335,6 @@ class BilateralSliceApplyTest(TestCase):
         grid_data = Variable(torch.randn(*grid_shape).cuda(), requires_grad=True)
         guide_data = Variable(torch.randn(*guide_shape).cuda(), requires_grad=True)
         input_data = Variable(torch.randn(*input_shape).cuda(), requires_grad=True)
-        has_offset_true = Variable(torch.ones(1).cuda(), requires_grad=True)
-        has_offset_false = Variable(torch.zeros(1).cuda(), requires_grad=True)
 
 
         output_data = self.run_bilateral_slice_apply(grid_data, guide_data, input_data)

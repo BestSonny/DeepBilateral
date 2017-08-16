@@ -61,14 +61,12 @@ class CurveChannel(nn.Module):
 
     def forward(self, x):
         batch, channel, height, width = x.size()
-        print  x.size()
-        input = x.expand(batch, self.npts, channel, height, width)
-        print  input.size()
+        expand_x = x.expand(self.npts, batch, channel, height, width).permute(1,0,2,3,4).contiguous()
         expand_shift = self.shift.expand(batch, height, width, self.npts, channel)
         shift = expand_shift.permute(0, 3, 4, 1, 2).contiguous()
         expand_slopes = self.slopes.expand(batch, height, width, self.npts, channel)
         slopes = expand_slopes.permute(0, 3, 4, 1, 2).contiguous()
-        x = slopes * F.relu(input-shift)
+        x = slopes * F.relu(expand_x-shift)
         x = self.conv(x.sum(1))
         return self.hardtanh(x)
 
@@ -76,15 +74,17 @@ class CurveChannel(nn.Module):
 class PSPNet(nn.Module):
     def __init__(self, depth=8, channel=12, pretrained=False, **kwargs):
         super(PSPNet, self).__init__()
-        self.model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
-        # if pretrained:
-        #     parameter =  model_zoo.load_url(model_urls['resnet18'])
-        #     self.model.load_state_dict(parameter)
+        self.model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
+        if pretrained:
+            self.model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
         del self.model.avgpool
         del self.model.fc
         self.depth = depth
         self.channel = channel
 
+        for m in self.model.layer2.modules():
+            if isinstance(m, nn.Conv2d):
+                    m.stride = 1
         for m in self.model.layer3.modules():
             if isinstance(m, nn.Conv2d):
                     m.stride = 1
@@ -97,9 +97,9 @@ class PSPNet(nn.Module):
         self.layer5c = PSPDec(512, 128, 4)
         self.layer5d = PSPDec(256, 128, 8)
 
-        self.upscale_factor = 8
+        self.upscale_factor = 4
 
-        self.upsample_feature = nn.Sequential(
+        self.grid_feature = nn.Sequential(
             nn.BatchNorm2d(512+128*4, momentum=.95),
             nn.ReLU(inplace=True),
             nn.Dropout(.2),
@@ -107,7 +107,7 @@ class PSPNet(nn.Module):
             nn.BatchNorm2d(512, momentum=.95),
             nn.ReLU(inplace=True),
             nn.Dropout(.2),
-            nn.Conv2d(512, self.upscale_factor * self.upscale_factor * self.depth * self.channel, 3, padding=1),
+            nn.Conv2d(512, self.depth * self.channel, 3, padding=1),
         )
 
         self.guide = nn.Sequential(
@@ -117,13 +117,14 @@ class PSPNet(nn.Module):
 
         self.bilateral_slice = BilateralSlice()
         self.bilateral_slice_apply = BilateralSliceApply(True)
+        self.clip = nn.Hardtanh(0,1)
 
     def forward(self, input):
         batch_size, channel, height, width = input.size()
-        lower_input = F.upsample(input, (height/4, width/4), mode='bilinear')
+        lower_input = F.upsample(input, (height/2, width/2), mode='bilinear')
 
         #guide
-        print('input', input.size())
+        # print('input', input.size())
         guide = self.guide(input)
 
 
@@ -154,9 +155,9 @@ class PSPNet(nn.Module):
             feature5d,
         ], 1)
 
-        feature = self.upsample_feature(feature)
-        grid =  F.pixel_shuffle(feature, self.upscale_factor)
-        grid = grid.resize(batch_size, self.depth, self.channel, height/4, width/4)
+        grid = self.grid_feature(feature)
+        # grid =  F.pixel_shuffle(feature, self.upscale_factor)
+        grid = grid.resize(batch_size, self.depth, self.channel, height/8, width/8)
 
         trans_grid = grid.permute(0,3,4,1,2).contiguous()
 
@@ -168,7 +169,6 @@ class PSPNet(nn.Module):
         transpose_input = input.permute(0,2,3,1).contiguous()
 
         output = self.bilateral_slice_apply(trans_grid, slice_coeff, transpose_input)
-
 
         final_output = output.permute(0,3,1,2).contiguous()
 
